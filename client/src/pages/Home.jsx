@@ -53,9 +53,11 @@ export default function Home() {
         }
 
         const tasks = csvData.map((row) => {
-            const { ["phone number"]: to_number, ...rest } = row;
+            const { ["phone number"]: to_number_raw, ...rest } = row;
+            const to_number = to_number_raw.startsWith("+") ? to_number_raw : `+${to_number_raw}`;
+
             return {
-                to_number: `+${to_number}`,
+                to_number,
                 retell_llm_dynamic_variables: rest,
             };
         });
@@ -90,6 +92,28 @@ export default function Home() {
         }
     };
 
+    const handleDownloadSample = () => {
+        const sampleData = [
+            { "phone number": "+911234567890", name: "John Doe", email: "john@example.com" },
+            { "phone number": "+919876543210", name: "Jane Smith", email: "jane@example.com" },
+            { "phone number": "+915551234567", name: "Bob Johnson", email: "bob@example.com" },
+        ];
+
+        const csv = Papa.unparse(sampleData);
+
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "sample_recipients.csv");
+        link.style.visibility = "hidden";
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div>
             <h2 className="text-2xl font-bold m-auto my-10 text-center">Send Batch Call</h2>
@@ -121,6 +145,12 @@ export default function Home() {
                                 className="block w-full text-sm text-gray-900 bg-gray-50 border border-gray-300 rounded-lg cursor-pointer focus:outline-none p-2"
                             />
                         </div>
+                        <button
+                            onClick={handleDownloadSample}
+                            className="mt-3 text-blue-600 text-sm underline hover:text-blue-800 cursor-pointer"
+                        >
+                            Download Sample CSV
+                        </button>
                         {fileName && (
                             <div className="mt-2 flex items-center gap-2">
                                 <span className="bg-red-100 text-red-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded">CSV</span>
