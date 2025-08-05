@@ -1,0 +1,5 @@
+@import "tailwindcss";
+
+.rdt_Pagination span {
+    @apply hidden;
+}
