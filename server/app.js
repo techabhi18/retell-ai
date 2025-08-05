@@ -15,6 +15,10 @@ const client = new Retell({
     apiKey: process.env.RETELL_API_TOKEN,
 });
 
+app.get("/", (req, res) => {
+    res.send("Server Working");
+});
+
 app.post("/trigger-call", (req, res) => {
     const callData = req.body.call;
 
