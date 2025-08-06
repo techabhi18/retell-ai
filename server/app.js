@@ -21,7 +21,7 @@ app.get("/", (req, res) => {
 
 const retryTracker = new Map();
 const pendingCallEvents = new Map();
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 30000;
 
 app.post("/trigger-call", (req, res) => {
@@ -62,6 +62,8 @@ app.post("/trigger-call", (req, res) => {
         shouldRecal = true;
       }
 
+      console.log("shouldRecal", shouldRecal);
+
       if (shouldRecal) {
         const retryCount = retryTracker.get(callId) || 0;
 
@@ -70,22 +72,30 @@ app.post("/trigger-call", (req, res) => {
         } else {
           retryTracker.set(callId, retryCount + 1);
 
-          const fromNumber = callEndedData.to_number;
-          const toNumber = callEndedData.from_number;
+          console.log("retryTracker", retryTracker);
+
+          const fromNumber = callEndedData.from_number;
+          const toNumber = callEndedData.to_number;
           const agentId = callEndedData.agent_id;
           const dynamicVariables = callEndedData.retell_llm_dynamic_variables;
 
           setTimeout(async () => {
+            const payload = {
+              from_number: fromNumber,
+              to_number: toNumber,
+              agent_id: agentId,
+              retell_llm_dynamic_variables: {
+                summary: callAnalyzedData.call_analysis.call_summary,
+                ...dynamicVariables,
+              },
+            };
+
+            console.log("Payload for new call:", payload);
+
             try {
-              const phoneCallResponse = await client.call.createPhoneCall({
-                from_number: fromNumber,
-                to_number: toNumber,
-                agent_id: agentId,
-                retell_llm_dynamic_variables: {
-                  summary: callAnalyzedData.call_analysis.call_summary,
-                  ...dynamicVariables,
-                },
-              });
+              const phoneCallResponse = await client.call.createPhoneCall(
+                payload
+              );
               console.log(
                 "Successfully placed new outbound call:",
                 phoneCallResponse
