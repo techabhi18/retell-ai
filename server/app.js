@@ -22,7 +22,7 @@ app.get("/", (req, res) => {
 const retryTracker = new Map();
 const pendingCallEvents = new Map();
 const MAX_RETRIES = 2;
-const RETRY_DELAY_MS = 30000;
+const RETRY_DELAY_MS = 1800000;
 
 app.post("/trigger-call", (req, res) => {
   console.log("Received trigger call request:", req.body);
