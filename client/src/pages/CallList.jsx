@@ -265,7 +265,7 @@ const CallList = () => {
                 sec
               </div>
               <div>
-                <strong>Cost:</strong> ₹
+                <strong>Cost:</strong> 
                 ${formatCost(selectedCall.call_cost?.combined_cost) || "0.00"}
               </div>
               <div>
