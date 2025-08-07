@@ -204,22 +204,20 @@ const CallList = () => {
                 <button
                   onClick={handlePrevPage}
                   disabled={isFirstPage || isFetching}
-                  className={`px-4 py-2 rounded ${
-                    isFirstPage || isFetching
+                  className={`px-4 py-2 rounded ${isFirstPage || isFetching
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-blue-500 text-white hover:bg-blue-600 cursor-pointer"
-                  }`}
+                    }`}
                 >
                   Previous
                 </button>
                 <button
                   onClick={handleNextPage}
                   disabled={isLastPage || isFetching}
-                  className={`px-4 py-2 rounded ${
-                    isLastPage || isFetching
+                  className={`px-4 py-2 rounded ${isLastPage || isFetching
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-blue-500 text-white hover:bg-blue-600 cursor-pointer"
-                  }`}
+                    }`}
                 >
                   Next
                 </button>
@@ -234,16 +232,14 @@ const CallList = () => {
         )}
       </div>
       <div
-        className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 ease-in-out ${
-          selectedCall ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
+        className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 ease-in-out ${selectedCall ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
         onClick={() => setSelectedCall(null)}
       />
       <div
         ref={sidebarRef}
-        className={`fixed top-0 right-0 h-full w-full sm:w-[60%] md:w-[50%] lg:w-[40%] bg-white z-50 shadow-xl transform transition-transform duration-300 ease-in-out ${
-          selectedCall ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed top-0 right-0 h-full w-full sm:w-[60%] md:w-[50%] lg:w-[40%] bg-white z-50 shadow-xl transform transition-transform duration-300 ease-in-out ${selectedCall ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         <div className="p-6 h-full overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
@@ -270,7 +266,7 @@ const CallList = () => {
               </div>
               <div>
                 <strong>Cost:</strong> ₹
-                {selectedCall.call_cost?.combined_cost?.toFixed(2) || "0.00"}
+                ${formatCost(selectedCall.call_cost?.combined_cost) || "0.00"}
               </div>
               <div>
                 <strong>Call Status:</strong> {selectedCall.call_status}
