@@ -4,6 +4,7 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import Retell from "retell-sdk";
+import nodemailer from 'nodemailer';
 
 const app = express();
 const port = 5000;
@@ -23,6 +24,17 @@ const retryTracker = new Map();
 const pendingCallEvents = new Map();
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 1800000;
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  pool: true,
+  maxConnections: 5,
+  maxMessages: 100,
+});
 
 app.post("/trigger-call", (req, res) => {
   console.log("Received trigger call request:", req.body);
@@ -61,8 +73,6 @@ app.post("/trigger-call", (req, res) => {
       ) {
         shouldRecal = true;
       }
-
-      console.log("shouldRecal", shouldRecal);
 
       if (shouldRecal) {
         const retryCount = retryTracker.get(callId) || 0;
@@ -104,6 +114,63 @@ app.post("/trigger-call", (req, res) => {
               console.error("Error creating phone call:", error);
             }
           }, RETRY_DELAY_MS);
+        }
+      }
+
+      pendingCallEvents.delete(callId);
+    }
+  }
+
+  res.status(200).send("Event received and processed.");
+});
+
+app.post("/send-email", async (req, res) => {
+  console.log("Received outbound call request to send email:", req.body);
+
+  const events = Array.isArray(req.body) ? req.body : [req.body];
+
+  for (const eventObj of events) {
+    const eventType = eventObj.event;
+    const callData = eventObj.call;
+    const callId = callData.call_id;
+
+    if (!pendingCallEvents.has(callId)) {
+      pendingCallEvents.set(callId, {});
+    }
+
+    const storedData = pendingCallEvents.get(callId);
+
+    if (eventType === "call_ended") {
+      storedData.callEndedData = callData;
+    }
+
+    if (eventType === "call_analyzed") {
+      storedData.callAnalyzedData = callData;
+    }
+
+    if (storedData.callEndedData && storedData.callAnalyzedData) {
+      const { callEndedData, callAnalyzedData } = storedData;
+
+      const dynamicVariables = callEndedData.retell_llm_dynamic_variables;
+
+      const summary = callAnalyzedData.call_analysis.call_summary;
+      const transcript = callEndedData.transcript;
+
+      const name = dynamicVariables?.name || "Unknown User";
+
+      if (summary && transcript) {
+        try {
+          const mailOptions = {
+            from: `StrategicERP <${process.env.EMAIL_USER}>`,
+            to: process.env.EMAIL_TO,
+            subject: `StrategicERP Feedback from - ${name}`,
+            text: `Summary: ${summary}\n\nTranscript: ${transcript}`,
+          };
+
+          await transporter.sendMail(mailOptions);
+          console.log(`Email sent for call ID ${callId} to ${process.env.EMAIL_TO}`);
+        } catch (err) {
+          console.error("Error sending email:", err);
         }
       }
 
