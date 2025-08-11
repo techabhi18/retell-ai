@@ -115,8 +115,6 @@ const CallList = () => {
   const isLastPage =
     !hasMoreData && currentPage * callsPerPage >= allCalls.length;
 
-  console.log("displayedCalls", displayedCalls);
-
   return (
     <div className="relative w-full">
       <div className="p-6">
