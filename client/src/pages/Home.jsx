@@ -107,7 +107,7 @@ export default function Home() {
         }));
 
         if (i < chunks.length - 1) {
-          await sleep(1000);
+          await sleep(500);
         }
       }
 
