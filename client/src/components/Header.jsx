@@ -14,6 +14,9 @@ const Header = () => {
                 <Link to="/call-list" className="text-gray-700 hover:text-blue-600 font-medium">
                     Call List
                 </Link>
+                {/* <Link to="/chat" className="text-gray-700 hover:text-blue-600 font-medium">
+                    Chat
+                </Link> */}
             </nav>
         </header>
     );
