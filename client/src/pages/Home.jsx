@@ -31,7 +31,10 @@ export default function Home() {
           setError("CSV is empty.");
           return;
         }
-
+        if (rows.length > 750) {
+          setError("CSV cannot have more than 750 rows.");
+          return;
+        }
         const firstRow = rows[0];
         const cols = Object.keys(firstRow);
         if (!cols.includes("phone number")) {
