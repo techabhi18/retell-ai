@@ -104,7 +104,7 @@ export default function Home() {
 
   const handleDownloadSample = () => {
     const sampleData = Array.from({ length: 20 }, (_, i) => ({
-      "phone number": `+91123456${String(i).padStart(4, "0")}`,
+      "phone number": `+911234567890`,
       name: `User ${i + 1}`,
       email: `user${i + 1}@example.com`,
     }));

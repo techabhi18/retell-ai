@@ -16,10 +16,6 @@ app.use(express.json());
 
 const RETELL_API_TOKEN = process.env.RETELL_API_TOKEN;
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("Connected to MongoDB"))
-  .catch((err) => console.error("MongoDB connection error", err));
-
 app.post("/upload-csv", async (req, res) => {
   try {
     const { csvContent, batchName, fromNumber } = req.body;
@@ -41,27 +37,37 @@ app.post("/upload-csv", async (req, res) => {
     }
 
     const batchDocs = [];
+    const allTasks = [];
 
-    for (let i = 0; i < chunks.length; i++) {
-      const batch = new Batch({ batchIndex: i, batchName, fromNumber, totalTasks: chunks[i].length });
-      await batch.save();
+    chunks.forEach((chunk, i) => {
+      const batch = {
+        batchIndex: i,
+        batchName,
+        fromNumber,
+        totalTasks: chunk.length,
+      };
       batchDocs.push(batch);
 
-      for (const row of chunks[i]) {
+      chunk.forEach((row) => {
         const toNumberRaw = row["phone number"];
         const toNumber = toNumberRaw.startsWith("+") ? toNumberRaw : `+${toNumberRaw}`;
-
-        const task = new Task({
+        allTasks.push({
           batchIndex: i,
           rowData: row,
           toNumber,
         });
+      });
+    });
 
-        await task.save();
-      }
-    }
+    const insertedBatches = await Batch.insertMany(batchDocs);
 
-    res.status(200).send({ message: "CSV uploaded and tasks saved", jobId: batchDocs[0]._id, totalBatches: chunks.length });
+    await Task.insertMany(allTasks);
+
+    res.status(200).send({
+      message: "CSV uploaded and tasks saved",
+      jobId: insertedBatches[0]._id,
+      totalBatches: insertedBatches.length,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).send("Error processing CSV");
@@ -164,9 +170,6 @@ const monitorBatch = async (batch, tasks) => {
   }, 5000);
 };
 
-triggerBatchCalls().catch(err => console.error("Initial triggerBatchCalls error:", err));
-setInterval(triggerBatchCalls, 60000);
-
 app.get("/job-progress/:batchId", async (req, res) => {
   const { batchId } = req.params;
 
@@ -194,6 +197,14 @@ app.get("/job-progress/:batchId", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("Connected to MongoDB");
+    triggerBatchCalls().catch(err => console.error("Initial triggerBatchCalls error:", err));
+    setInterval(triggerBatchCalls, 60000);
+
+    app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    });
+  })
+  .catch((err) => console.error("MongoDB connection error", err));
