@@ -116,7 +116,7 @@ export default function Chat() {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col bg-gray-100">
+    <div className="h-[92vh] w-full flex flex-col bg-gray-100">
       <header className="bg-white shadow-md p-4 flex justify-between items-center">
         <h1 className="text-xl font-semibold text-gray-800">
           StrategicERP Support
