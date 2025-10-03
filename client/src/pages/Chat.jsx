@@ -9,14 +9,12 @@ export default function Chat() {
   const [ending, setEnding] = useState(false);
   const scrollRef = useRef(null);
 
-  const agentId = "agent_d7d11a8a5f0eb63c69686266e7";
+  const agentId = "agent_45100f5a7c3ccc7769b545eae1";
 
-  // auto-scroll to latest message
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // create chat automatically on mount
   useEffect(() => {
     const startChat = async () => {
       try {
