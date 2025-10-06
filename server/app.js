@@ -74,7 +74,7 @@ app.post("/upload-csv", async (req, res) => {
   }
 });
 
-const BATCH_LIMIT = 49;
+const BATCH_LIMIT = 40;
 
 const triggerBatchCalls = async () => {
   const pendingBatches = await Batch.find({ status: "pending" }).limit(BATCH_LIMIT);
