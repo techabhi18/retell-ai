@@ -24,7 +24,10 @@ app.post("/upload-csv", async (req, res) => {
       return res.status(400).send("Missing required fields");
     }
 
-    const results = Papa.parse(csvContent, { header: true, skipEmptyLines: true });
+    const results = Papa.parse(csvContent, {
+      header: true,
+      skipEmptyLines: true,
+    });
     const rows = results.data;
 
     if (!rows.length) return res.status(400).send("CSV is empty");
@@ -50,7 +53,9 @@ app.post("/upload-csv", async (req, res) => {
 
       chunk.forEach((row) => {
         const toNumberRaw = row["phone number"];
-        const toNumber = toNumberRaw.startsWith("+") ? toNumberRaw : `+${toNumberRaw}`;
+        const toNumber = toNumberRaw.startsWith("+")
+          ? toNumberRaw
+          : `+${toNumberRaw}`;
         allTasks.push({
           batchIndex: i,
           rowData: row,
@@ -77,14 +82,19 @@ app.post("/upload-csv", async (req, res) => {
 const BATCH_LIMIT = 40;
 
 const triggerBatchCalls = async () => {
-  const pendingBatches = await Batch.find({ status: "pending" }).limit(BATCH_LIMIT);
+  const pendingBatches = await Batch.find({ status: "pending" }).limit(
+    BATCH_LIMIT
+  );
   console.log("Pending batches", pendingBatches);
 
   for (const batch of pendingBatches) {
     batch.status = "in-progress";
     await batch.save();
 
-    const tasks = await Task.find({ batchIndex: batch.batchIndex, status: "pending" });
+    const tasks = await Task.find({
+      batchIndex: batch.batchIndex,
+      status: "pending",
+    });
 
     const payloadTasks = tasks.map((t) => ({
       to_number: t.toNumber,
@@ -120,9 +130,11 @@ const triggerBatchCalls = async () => {
       }
 
       monitorBatch(batch, tasks);
-
     } catch (err) {
-      console.error("Error creating batch call", err.response?.data || err.message);
+      console.error(
+        "Error creating batch call",
+        err.response?.data || err.message
+      );
       batch.status = "pending";
       await batch.save();
     }
@@ -135,7 +147,10 @@ const monitorBatch = async (batch, tasks) => {
       const res = await axios.post(
         "https://api.retellai.com/v2/list-calls",
         {
-          filter_criteria: { batch_call_id: [batch.batchCallId], call_status: ["ended", "registered", "not_connected", "error"] },
+          filter_criteria: {
+            batch_call_id: [batch.batchCallId],
+            call_status: ["ended", "registered", "not_connected", "error"],
+          },
         },
         {
           headers: {
@@ -165,7 +180,10 @@ const monitorBatch = async (batch, tasks) => {
         triggerBatchCalls();
       }
     } catch (err) {
-      console.error("Error monitoring batch", err.response?.data || err.message);
+      console.error(
+        "Error monitoring batch",
+        err.response?.data || err.message
+      );
     }
   }, 5000);
 };
@@ -175,7 +193,8 @@ app.get("/job-progress/:batchId", async (req, res) => {
 
   try {
     const batches = await Batch.find({ _id: batchId });
-    if (!batches.length) return res.status(404).send({ message: "Job not found" });
+    if (!batches.length)
+      return res.status(404).send({ message: "Job not found" });
 
     let done = 0;
     let total = 0;
@@ -197,10 +216,13 @@ app.get("/job-progress/:batchId", async (req, res) => {
   }
 });
 
-mongoose.connect(process.env.MONGO_URI)
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("Connected to MongoDB");
-    triggerBatchCalls().catch(err => console.error("Initial triggerBatchCalls error:", err));
+    triggerBatchCalls().catch((err) =>
+      console.error("Initial triggerBatchCalls error:", err)
+    );
     setInterval(triggerBatchCalls, 60000);
 
     app.listen(port, () => {
@@ -208,3 +230,55 @@ mongoose.connect(process.env.MONGO_URI)
     });
   })
   .catch((err) => console.error("MongoDB connection error", err));
+
+app.post("/list/calls", async (req, res) => {
+  try {
+    const { batch_call_ids, limit = 50, pagination_key } = req.body;
+
+    if (batch_call_ids && !Array.isArray(batch_call_ids)) {
+      return res.status(400).json({
+        error: "Invalid input: 'batch_call_ids' must be an array.",
+      });
+    }
+
+    if (typeof limit !== "number" || limit <= 0 || limit > 1000) {
+      return res.status(400).json({
+        error: "Invalid 'limit': must be an integer between 1 and 1000.",
+      });
+    }
+
+    const requestBody = {
+      sort_order: "descending",
+      limit,
+    };
+
+    if (pagination_key) {
+      requestBody.pagination_key = pagination_key;
+    }
+
+    if (Array.isArray(batch_call_ids) && batch_call_ids.length > 0) {
+      requestBody.filter_criteria = {
+        batch_call_id: batch_call_ids,
+      };
+    }
+
+    const response = await axios.post(
+      "https://api.retellai.com/v2/list-calls",
+      requestBody,
+      {
+        headers: {
+          Authorization: `Bearer ${RETELL_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    res.status(200).json(response.data);
+  } catch (error) {
+    console.error("Error fetching batch calls:", error.message);
+    res.status(500).json({
+      error: "Error fetching batch calls",
+      details: error.message,
+    });
+  }
+});
