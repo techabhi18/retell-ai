@@ -9,7 +9,7 @@ export default function Chat() {
   const [ending, setEnding] = useState(false);
   const scrollRef = useRef(null);
 
-  const agentId = "agent_45100f5a7c3ccc7769b545eae1";
+  const agentId = "agent_ec1bc6f39f20a5e63c8189f695";
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
