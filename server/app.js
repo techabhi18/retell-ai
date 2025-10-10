@@ -70,10 +70,11 @@ app.post("/upload-csv", async (req, res) => {
 
     triggerBatchCalls().catch(console.error);
 
-    res.status(200).send({
-      message: "CSV uploaded and tasks saved",
-      jobId: insertedBatches[0]._id,
+    res.status(200).json({
+      message:
+        "CSV uploaded successfully. Batch calls will be triggered automatically.",
       totalBatches: insertedBatches.length,
+      jobId: insertedBatches[0]._id,
     });
   } catch (err) {
     console.error(err);
@@ -85,9 +86,14 @@ const BATCH_LIMIT = 40;
 
 const triggerBatchCalls = async () => {
   try {
+    const inProgressCount = await Batch.countDocuments({
+      status: "in-progress",
+    });
+    const availableSlots = Math.max(BATCH_LIMIT - inProgressCount, 0);
     const pendingBatches = await Batch.find({ status: "pending" }).limit(
-      BATCH_LIMIT
+      availableSlots
     );
+
     console.log("Pending batches", pendingBatches.length);
 
     const isValidNumber = (num) => {

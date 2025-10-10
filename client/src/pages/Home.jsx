@@ -53,19 +53,9 @@ export default function Home() {
         }
       );
 
-      const { success = 0, failed = 0 } = res.data;
-
-      if (success > 0 && failed === 0) {
-        setMessage(
-          "All batch calls triggered successfully! You will receive calls shortly."
-        );
-      } else if (success === 0 && failed > 0) {
-        setError("Batch call creation failed. Please try again.");
-      } else {
-        setMessage(
-          `${success} batch calls triggered successfully, ${failed} failed.`
-        );
-      }
+      setMessage(
+        res.data.message || "Batch calls will be triggered automatically."
+      );
 
       setCsvRaw("");
       setCsvRows([]);
@@ -75,7 +65,7 @@ export default function Home() {
       setFromNumber("");
     } catch (err) {
       console.error(err);
-      setError("Failed to upload CSV or trigger batch calls.");
+      setError("Failed to upload CSV.");
     } finally {
       setLoading(false);
     }
