@@ -68,6 +68,8 @@ app.post("/upload-csv", async (req, res) => {
 
     await Task.insertMany(allTasks);
 
+    triggerBatchCalls().catch(console.error);
+
     res.status(200).send({
       message: "CSV uploaded and tasks saved",
       jobId: insertedBatches[0]._id,
@@ -82,62 +84,69 @@ app.post("/upload-csv", async (req, res) => {
 const BATCH_LIMIT = 40;
 
 const triggerBatchCalls = async () => {
-  const pendingBatches = await Batch.find({ status: "pending" }).limit(
-    BATCH_LIMIT
-  );
-  console.log("Pending batches", pendingBatches);
+  try {
+    const pendingBatches = await Batch.find({ status: "pending" }).limit(
+      BATCH_LIMIT
+    );
+    console.log("Pending batches", pendingBatches.length);
 
-  for (const batch of pendingBatches) {
-    batch.status = "in-progress";
-    await batch.save();
+    await Promise.allSettled(
+      pendingBatches.map(async (batch) => {
+        batch.status = "in-progress";
+        await batch.save();
 
-    const tasks = await Task.find({
-      batchIndex: batch.batchIndex,
-      status: "pending",
-    });
+        const tasks = await Task.find({
+          batchIndex: batch.batchIndex,
+          status: "pending",
+        });
 
-    const payloadTasks = tasks.map((t) => ({
-      to_number: t.toNumber,
-      retell_llm_dynamic_variables: t.rowData,
-    }));
+        const payloadTasks = tasks.map((t) => ({
+          to_number: t.toNumber,
+          retell_llm_dynamic_variables: t.rowData,
+        }));
 
-    try {
-      const res = await axios.post(
-        "https://api.retellai.com/create-batch-call",
-        {
-          name: `${batch.batchName}_part_${batch.batchIndex + 1}`,
-          from_number: batch.fromNumber,
-          tasks: payloadTasks,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${RETELL_API_TOKEN}`,
-            "Content-Type": "application/json",
-          },
+        try {
+          const res = await axios.post(
+            "https://api.retellai.com/create-batch-call",
+            {
+              name: `${batch.batchName}_part_${batch.batchIndex + 1}`,
+              from_number: batch.fromNumber,
+              tasks: payloadTasks,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${RETELL_API_TOKEN}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          const batchCallId = res.data?.batch_call_id;
+          if (!batchCallId) throw new Error("No batch_call_id returned");
+
+          batch.batchCallId = batchCallId;
+          await batch.save();
+
+          for (const t of tasks) {
+            t.batchCallId = batchCallId;
+            t.status = "in-progress";
+            await t.save();
+          }
+
+          monitorBatch(batch, tasks);
+        } catch (err) {
+          console.error(
+            `Error creating batch call for batch ${batch._id}:`,
+            err.response?.data || err.message
+          );
+          batch.status = "error";
+          batch.errorMessage = err.response?.data?.message || err.message;
+          await batch.save();
         }
-      );
-
-      const batchCallId = res.data?.batch_call_id;
-      if (!batchCallId) throw new Error("No batch_call_id returned");
-
-      batch.batchCallId = batchCallId;
-      await batch.save();
-
-      for (const t of tasks) {
-        t.batchCallId = batchCallId;
-        t.status = "in-progress";
-        await t.save();
-      }
-
-      monitorBatch(batch, tasks);
-    } catch (err) {
-      console.error(
-        "Error creating batch call",
-        err.response?.data || err.message
-      );
-      batch.status = "pending";
-      await batch.save();
-    }
+      })
+    );
+  } catch (err) {
+    console.error("Error in triggerBatchCalls:", err.message);
   }
 };
 
