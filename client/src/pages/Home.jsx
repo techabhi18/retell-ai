@@ -92,6 +92,21 @@ export default function Home() {
     document.body.removeChild(link);
   };
 
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        await axios.post(
+          "https://retell-ai-server.vercel.app/trigger-batch-calls"
+        );
+        console.log("Triggered batch calls");
+      } catch (err) {
+        console.error("Failed to trigger batch calls", err);
+      }
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div>
       <h2 className="text-2xl font-bold m-auto my-10 text-center">

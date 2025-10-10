@@ -252,6 +252,16 @@ mongoose
   })
   .catch((err) => console.error("MongoDB connection error", err));
 
+app.post("/trigger-batch-calls", async (req, res) => {
+  try {
+    await triggerBatchCalls();
+    res.status(200).json({ message: "Batch calls triggered successfully." });
+  } catch (err) {
+    console.error("Error triggering batch calls:", err.message);
+    res.status(500).json({ error: "Failed to trigger batch calls" });
+  }
+});
+
 app.post("/list/calls", async (req, res) => {
   try {
     const { batch_call_ids, limit = 50, pagination_key } = req.body;
