@@ -90,7 +90,13 @@ const triggerBatchCalls = async () => {
     );
     console.log("Pending batches", pendingBatches.length);
 
-    const isValidE164 = (num) => /^\+\d{10,15}$/.test(num);
+    const isValidNumber = (num) => {
+      if (!/^\+?\d+$/.test(num)) return false;
+
+      const digitsOnly = num.startsWith("+") ? num.slice(1) : num;
+
+      return digitsOnly.length >= 10;
+    };
 
     await Promise.allSettled(
       pendingBatches.map(async (batch) => {
@@ -105,7 +111,7 @@ const triggerBatchCalls = async () => {
         const validTasks = [];
 
         for (const t of tasks) {
-          if (isValidE164(t.toNumber)) {
+          if (isValidNumber(t.toNumber)) {
             validTasks.push({
               to_number: t.toNumber,
               retell_llm_dynamic_variables: t.rowData,
