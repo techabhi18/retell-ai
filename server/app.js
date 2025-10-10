@@ -99,6 +99,8 @@ const triggerBatchCalls = async () => {
     console.log("Available slots:", availableSlots);
     console.log("Pending batches found:", pendingBatches.length);
 
+    if (pendingBatches?.length <= 0) return { success: 0, failed: 0 };
+
     const isValidNumber = (num) => {
       if (!num) return false;
 
@@ -167,6 +169,8 @@ const triggerBatchCalls = async () => {
             { _id: { $in: tasks.map((t) => t._id) } },
             { $set: { batchCallId, status: "in-progress" } }
           );
+
+          console.log("batch call details...", batch);
 
           monitorBatch(batch, tasks).catch(console.error);
           return { success: validTasksForCall.length, failed: 0 };
