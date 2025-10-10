@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import Papa from "papaparse";
 import axios from "axios";
 
@@ -12,18 +12,6 @@ export default function Home() {
   const [batchName, setBatchName] = useState("");
   const [fileName, setFileName] = useState("");
   const [fromNumber, setFromNumber] = useState("");
-  const [progress, setProgress] = useState({ done: 0, total: 0 });
-  const [jobId, setJobId] = useState(null);
-
-  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-  useEffect(() => {
-    const savedJobId = localStorage.getItem("batchJobId");
-    if (savedJobId) {
-      setJobId(savedJobId);
-      monitorProgress(savedJobId);
-    }
-  }, []);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -35,7 +23,10 @@ export default function Home() {
       const csvText = event.target.result;
       setCsvRaw(csvText);
 
-      const results = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+      const results = Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true,
+      });
       setCsvRows(results.data);
       setHeaders(results.meta.fields || []);
     };
@@ -53,51 +44,39 @@ export default function Home() {
     setError("");
 
     try {
-      const res = await axios.post("https://retell-ai-server.vercel.app/upload-csv", {
-        csvContent: csvRaw,
-        batchName,
-        fromNumber,
-      });
+      const res = await axios.post(
+        "https://retell-ai-server.vercel.app/upload-csv",
+        {
+          csvContent: csvRaw,
+          batchName,
+          fromNumber,
+        }
+      );
 
-      const jobId = res.data.jobId;
-      setJobId(jobId);
-      localStorage.setItem("batchJobId", jobId);
-      setMessage("CSV uploaded! Starting batch calls...");
+      const { success = 0, failed = 0 } = res.data;
 
-      monitorProgress(jobId);
+      if (success > 0 && failed === 0) {
+        setMessage(
+          "All batch calls triggered successfully! You will receive calls shortly."
+        );
+      } else if (success === 0 && failed > 0) {
+        setError("Batch call creation failed. Please try again.");
+      } else {
+        setMessage(
+          `${success} batch calls triggered successfully, ${failed} failed.`
+        );
+      }
+
+      setCsvRaw("");
+      setCsvRows([]);
+      setHeaders([]);
+      setBatchName("");
+      setFileName("");
+      setFromNumber("");
     } catch (err) {
       console.error(err);
-      setError(err.response?.data || "Error uploading CSV");
-      setLoading(false);
-    }
-  };
-
-  const monitorProgress = async (jobIdToMonitor) => {
-    try {
-      while (true) {
-        const res = await axios.get(`https://retell-ai-server.vercel.app/job-progress/${jobIdToMonitor}`);
-        const { done, total, status } = res.data;
-
-        setProgress({ done, total });
-
-        if (status === "completed") {
-          setMessage("All batch calls triggered and completed successfully!");
-          setCsvRaw("");
-          setCsvRows([]);
-          setHeaders([]);
-          setBatchName("");
-          setFileName("");
-          setFromNumber("");
-          setLoading(false);
-          localStorage.removeItem("batchJobId");
-          break;
-        }
-
-        await sleep(5000);
-      }
-    } catch (err) {
-      console.error("Error monitoring job:", err);
-      setError("Failed to monitor job progress.");
+      setError("Failed to upload CSV or trigger batch calls.");
+    } finally {
       setLoading(false);
     }
   };
@@ -125,40 +104,79 @@ export default function Home() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold m-auto my-10 text-center">Send Batch Call</h2>
+      <h2 className="text-2xl font-bold m-auto my-10 text-center">
+        Send Batch Call
+      </h2>
       <div className="flex flex-col lg:flex-row gap-6 max-w-6xl mx-auto mt-10 p-6">
-
         <div className="w-full lg:w-1/2 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Batch Call Name</label>
-            <input type="text" value={batchName} onChange={(e) => setBatchName(e.target.value)} placeholder="Enter" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Batch Call Name
+            </label>
+            <input
+              type="text"
+              value={batchName}
+              onChange={(e) => setBatchName(e.target.value)}
+              placeholder="Enter"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none"
+            />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">From number</label>
-            <input type="text" value={fromNumber} onChange={(e) => setFromNumber(e.target.value)} placeholder="+1XXXXXXXXXX" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              From number
+            </label>
+            <input
+              type="text"
+              value={fromNumber}
+              onChange={(e) => setFromNumber(e.target.value)}
+              placeholder="+1XXXXXXXXXX"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none"
+            />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Upload Recipients</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Upload Recipients
+            </label>
             <div className="flex items-center gap-2">
-              <input type="file" accept=".csv" onChange={handleFileUpload} className="block w-full text-sm text-gray-900 bg-gray-50 border border-gray-300 rounded-lg cursor-pointer focus:outline-none p-2" />
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="block w-full text-sm text-gray-900 bg-gray-50 border border-gray-300 rounded-lg cursor-pointer focus:outline-none p-2"
+              />
             </div>
-            <button onClick={handleDownloadSample} className="mt-3 text-blue-600 text-sm underline hover:text-blue-800 cursor-pointer">Download Sample CSV</button>
+            <button
+              onClick={handleDownloadSample}
+              className="mt-3 text-blue-600 text-sm underline hover:text-blue-800 cursor-pointer"
+            >
+              Download Sample CSV
+            </button>
             {fileName && (
               <div className="mt-2 flex items-center gap-2">
-                <span className="bg-red-100 text-red-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded">CSV</span>
+                <span className="bg-red-100 text-red-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded">
+                  CSV
+                </span>
                 <span className="text-sm text-gray-600">{fileName}</span>
               </div>
             )}
           </div>
 
           {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
-          {message && <div className="text-green-500 text-sm mt-2">{message}</div>}
+          {message && (
+            <div className="text-green-500 text-sm mt-2">{message}</div>
+          )}
 
-          {loading && <div className="mt-2 text-blue-600 text-sm">Sending... {progress.done}/{progress.total} completed</div>}
-
-          <button onClick={handleTriggerCall} disabled={!csvRaw || !batchName || !fromNumber || loading} className={`mt-4 w-full px-4 py-2 text-white rounded-md font-medium transition duration-150 ${!csvRaw || !batchName || !fromNumber || loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}>
+          <button
+            onClick={handleTriggerCall}
+            disabled={!csvRaw || !batchName || !fromNumber || loading}
+            className={`mt-4 w-full px-4 py-2 text-white rounded-md font-medium transition duration-150 ${
+              !csvRaw || !batchName || !fromNumber || loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
+            }`}
+          >
             {loading ? "Sending..." : "Send"}
           </button>
         </div>
@@ -170,7 +188,9 @@ export default function Home() {
                 <tr>
                   <th className="px-4 py-2">ID</th>
                   {headers.map((header, idx) => (
-                    <th key={idx} className="px-4 py-2 capitalize">{header}</th>
+                    <th key={idx} className="px-4 py-2 capitalize">
+                      {header}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -179,7 +199,9 @@ export default function Home() {
                   <tr key={idx} className="border-b hover:bg-gray-50">
                     <td className="px-4 py-2">{idx + 1}</td>
                     {headers.map((key, i) => (
-                      <td key={i} className="px-4 py-2">{row[key]}</td>
+                      <td key={i} className="px-4 py-2">
+                        {row[key]}
+                      </td>
                     ))}
                   </tr>
                 ))}
@@ -187,7 +209,6 @@ export default function Home() {
             </table>
           )}
         </div>
-
       </div>
     </div>
   );

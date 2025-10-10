@@ -155,30 +155,18 @@ const triggerBatchCalls = async () => {
           await batch.save();
 
           await Task.updateMany(
-            {
-              _id: {
-                $in: tasks
-                  .filter((t) => t.status === "pending")
-                  .map((t) => t._id),
-              },
-            },
+            { _id: { $in: tasks.map((t) => t._id) } },
             { $set: { batchCallId, status: "in-progress" } }
           );
 
-          const allTasksForMonitor = await Task.find({
-            batchIndex: batch.batchIndex,
-            batchCallId: batch.batchCallId,
-          });
-
-          monitorBatch(batch, allTasksForMonitor);
+          return { success: validTasksForCall.length, failed: 0 };
         } catch (err) {
           console.error(
             `Error creating batch call for batch ${batch._id}:`,
-            err.response?.data || err.message
+            err.message
           );
-          batch.status = "error";
-          batch.errorMessage = err.response?.data?.message || err.message;
-          await batch.save();
+
+          return { success: 0, failed: validTasksForCall.length };
         }
       })
     );
