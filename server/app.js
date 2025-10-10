@@ -91,10 +91,12 @@ const triggerBatchCalls = async () => {
     console.log("Pending batches", pendingBatches.length);
 
     const isValidNumber = (num) => {
-      if (!/^\+?\d+$/.test(num)) return false;
+      if (!num) return false;
 
-      const digitsOnly = num.startsWith("+") ? num.slice(1) : num;
+      const cleaned = num.trim();
+      if (!/^\+?\d+$/.test(cleaned)) return false;
 
+      const digitsOnly = cleaned.startsWith("+") ? cleaned.slice(1) : cleaned;
       return digitsOnly.length >= 10;
     };
 
