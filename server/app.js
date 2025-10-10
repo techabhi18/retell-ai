@@ -48,6 +48,7 @@ app.post("/upload-csv", async (req, res) => {
         batchName,
         fromNumber,
         totalTasks: chunk.length,
+        status: "pending",
       };
       batchDocs.push(batch);
 
