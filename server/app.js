@@ -226,7 +226,13 @@ const monitorBatch = async (batch, tasks) => {
       if (doneCount === tasks.length) {
         batch.status = "done";
         clearInterval(interval);
-        triggerBatchCalls();
+
+        const inProgress = await Batch.countDocuments({
+          status: "in-progress",
+        });
+        if (inProgress === 0) {
+          triggerBatchCalls();
+        }
       } else {
         batch.status = "in-progress";
       }
