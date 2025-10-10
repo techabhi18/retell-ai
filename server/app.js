@@ -110,11 +110,11 @@ const triggerBatchCalls = async () => {
           status: "pending",
         });
 
-        const validTasks = [];
+        let validTasksForCall = [];
 
         for (const t of tasks) {
           if (isValidNumber(t.toNumber)) {
-            validTasks.push({
+            validTasksForCall.push({
               to_number: t.toNumber,
               retell_llm_dynamic_variables: t.rowData,
             });
@@ -124,7 +124,7 @@ const triggerBatchCalls = async () => {
           }
         }
 
-        if (!validTasks.length) {
+        if (!validTasksForCall.length) {
           batch.status = "done";
           batch.completedTasks = 0;
           await batch.save();
@@ -137,7 +137,7 @@ const triggerBatchCalls = async () => {
             {
               name: `${batch.batchName}_part_${batch.batchIndex + 1}`,
               from_number: batch.fromNumber,
-              tasks: validTasks,
+              tasks: validTasksForCall,
             },
             {
               headers: {
@@ -165,12 +165,12 @@ const triggerBatchCalls = async () => {
             { $set: { batchCallId, status: "in-progress" } }
           );
 
-          const validTasks = await Task.find({
+          const allTasksForMonitor = await Task.find({
             batchIndex: batch.batchIndex,
             batchCallId: batch.batchCallId,
           });
 
-          monitorBatch(batch, validTasks);
+          monitorBatch(batch, allTasksForMonitor);
         } catch (err) {
           console.error(
             `Error creating batch call for batch ${batch._id}:`,
