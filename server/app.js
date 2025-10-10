@@ -69,8 +69,6 @@ app.post("/upload-csv", async (req, res) => {
 
     await Task.insertMany(allTasks);
 
-    triggerBatchCalls().catch(console.error);
-
     res.status(200).json({
       message:
         "CSV uploaded successfully. Batch calls will be triggered automatically.",
