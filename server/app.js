@@ -165,6 +165,7 @@ const triggerBatchCalls = async () => {
             { $set: { batchCallId, status: "in-progress" } }
           );
 
+          monitorBatch(batch, tasks).catch(console.error);
           return { success: validTasksForCall.length, failed: 0 };
         } catch (err) {
           console.error(
