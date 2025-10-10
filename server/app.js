@@ -85,12 +85,8 @@ const BATCH_LIMIT = 40;
 
 const triggerBatchCalls = async () => {
   try {
-    const inProgressCount = await Batch.countDocuments({
-      status: "in-progress",
-    });
-    const availableSlots = Math.max(BATCH_LIMIT - inProgressCount, 0);
     const pendingBatches = await Batch.find({ status: "pending" }).limit(
-      availableSlots
+      BATCH_LIMIT
     );
 
     console.log("In-progress batches:", inProgressCount);
