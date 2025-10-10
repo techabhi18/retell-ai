@@ -89,8 +89,6 @@ const triggerBatchCalls = async () => {
       BATCH_LIMIT
     );
 
-    console.log("In-progress batches:", inProgressCount);
-    console.log("Available slots:", availableSlots);
     console.log("Pending batches found:", pendingBatches.length);
 
     if (pendingBatches?.length <= 0) return { success: 0, failed: 0 };
