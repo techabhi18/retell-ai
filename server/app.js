@@ -90,6 +90,8 @@ const triggerBatchCalls = async () => {
     );
     console.log("Pending batches", pendingBatches.length);
 
+    const isValidE164 = (num) => /^\+\d{10,15}$/.test(num);
+
     await Promise.allSettled(
       pendingBatches.map(async (batch) => {
         batch.status = "in-progress";
@@ -100,10 +102,26 @@ const triggerBatchCalls = async () => {
           status: "pending",
         });
 
-        const payloadTasks = tasks.map((t) => ({
-          to_number: t.toNumber,
-          retell_llm_dynamic_variables: t.rowData,
-        }));
+        const validTasks = [];
+
+        for (const t of tasks) {
+          if (isValidE164(t.toNumber)) {
+            validTasks.push({
+              to_number: t.toNumber,
+              retell_llm_dynamic_variables: t.rowData,
+            });
+          } else {
+            await Task.deleteOne({ _id: t._id });
+            console.log(`Deleted invalid task with number: ${t.toNumber}`);
+          }
+        }
+
+        if (!validTasks.length) {
+          batch.status = "done";
+          batch.completedTasks = 0;
+          await batch.save();
+          return;
+        }
 
         try {
           const res = await axios.post(
@@ -111,7 +129,7 @@ const triggerBatchCalls = async () => {
             {
               name: `${batch.batchName}_part_${batch.batchIndex + 1}`,
               from_number: batch.fromNumber,
-              tasks: payloadTasks,
+              tasks: validTasks,
             },
             {
               headers: {
@@ -125,15 +143,26 @@ const triggerBatchCalls = async () => {
           if (!batchCallId) throw new Error("No batch_call_id returned");
 
           batch.batchCallId = batchCallId;
+          batch.status = "in-progress";
           await batch.save();
 
-          for (const t of tasks) {
-            t.batchCallId = batchCallId;
-            t.status = "in-progress";
-            await t.save();
-          }
+          await Task.updateMany(
+            {
+              _id: {
+                $in: tasks
+                  .filter((t) => t.status === "pending")
+                  .map((t) => t._id),
+              },
+            },
+            { $set: { batchCallId, status: "in-progress" } }
+          );
 
-          monitorBatch(batch, tasks);
+          const validTasks = await Task.find({
+            batchIndex: batch.batchIndex,
+            batchCallId: batch.batchCallId,
+          });
+
+          monitorBatch(batch, validTasks);
         } catch (err) {
           console.error(
             `Error creating batch call for batch ${batch._id}:`,
@@ -169,25 +198,30 @@ const monitorBatch = async (batch, tasks) => {
         }
       );
 
-      console.log("List calls response", res.data?.length);
-      console.log("Tasks calls response", tasks?.length);
+      const callStatuses = res.data || [];
+      const endedCallsSet = new Set(callStatuses.map((c) => c.to_number));
 
-      const endedCalls = res.data?.length || 0;
+      let doneCount = 0;
 
-      if (endedCalls >= tasks.length) {
-        for (const t of tasks) {
+      for (const t of tasks) {
+        if (endedCallsSet.has(t.toNumber)) {
           t.status = "done";
           await t.save();
+          doneCount++;
         }
-
-        batch.status = "done";
-        batch.completedTasks = tasks.length;
-        await batch.save();
-
-        clearInterval(interval);
-
-        triggerBatchCalls();
       }
+
+      batch.completedTasks = doneCount;
+      batch.totalTasks = tasks.length;
+      if (doneCount === tasks.length) {
+        batch.status = "done";
+        clearInterval(interval);
+        triggerBatchCalls();
+      } else {
+        batch.status = "in-progress";
+      }
+
+      await batch.save();
     } catch (err) {
       console.error(
         "Error monitoring batch",
