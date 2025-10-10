@@ -94,7 +94,9 @@ const triggerBatchCalls = async () => {
       availableSlots
     );
 
-    console.log("Pending batches", pendingBatches.length);
+    console.log("In-progress batches:", inProgressCount);
+    console.log("Available slots:", availableSlots);
+    console.log("Pending batches found:", pendingBatches.length);
 
     const isValidNumber = (num) => {
       if (!num) return false;
@@ -233,34 +235,6 @@ const monitorBatch = async (batch, tasks) => {
     }
   }, 5000);
 };
-
-app.get("/job-progress/:batchId", async (req, res) => {
-  const { batchId } = req.params;
-
-  try {
-    const batches = await Batch.find({ _id: batchId });
-    if (!batches.length)
-      return res.status(404).send({ message: "Job not found" });
-
-    let done = 0;
-    let total = 0;
-    let status = "pending";
-
-    for (const b of batches) {
-      const tasks = await Task.find({ batchIndex: b.batchIndex });
-      done += tasks.filter((t) => t.status === "done").length;
-      total += tasks.length;
-
-      if (b.status === "in-progress") status = "in-progress";
-      else if (b.status === "done") status = "completed";
-    }
-
-    res.status(200).send({ done, total, status });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error fetching job progress");
-  }
-});
 
 mongoose
   .connect(process.env.MONGO_URI)
