@@ -182,7 +182,7 @@ const CallList = () => {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto rounded-lg shadow border border-gray-200">
+            <div className="overflow-x-auto rounded-lg shadow border border-gray-200 bg-white">
               <table className="min-w-full text-sm text-left text-gray-700 border-collapse">
                 <thead className="bg-gray-100">
                   <tr>
