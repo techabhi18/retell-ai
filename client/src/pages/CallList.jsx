@@ -33,7 +33,6 @@ const CallList = () => {
       const filterCriteria = {};
 
       if (type === "Support") {
-        filterCriteria.from_number = ["+12182745624", "+912250323317"];
         filterCriteria.to_number = ["+12182745624", "+912250323317"];
       } else if (type === "Sales")
         filterCriteria.from_number = ["+12182504277", "+912250323032"];
