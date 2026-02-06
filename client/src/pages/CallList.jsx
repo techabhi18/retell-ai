@@ -20,7 +20,7 @@ const CallList = () => {
     pagination_key = null,
     type = filterType,
     start = startDate,
-    end = endDate
+    end = endDate,
   ) => {
     setIsFetching(true);
     setLoading(true);
@@ -32,9 +32,10 @@ const CallList = () => {
 
       const filterCriteria = {};
 
-      if (type === "Support")
+      if (type === "Support") {
         filterCriteria.from_number = ["+12182745624", "+912250323317"];
-      else if (type === "Sales")
+        filterCriteria.to_number = ["+12182745624", "+912250323317"];
+      } else if (type === "Sales")
         filterCriteria.from_number = ["+12182504277", "+912250323032"];
 
       if (start || end) {
@@ -59,18 +60,18 @@ const CallList = () => {
             Authorization: `Bearer ${import.meta.env.VITE_RETELL_API_TOKEN}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       const fetchedCalls = res.data || [];
       setAllCalls((prev) =>
-        pagination_key ? [...prev, ...fetchedCalls] : fetchedCalls
+        pagination_key ? [...prev, ...fetchedCalls] : fetchedCalls,
       );
       setHasMoreData(fetchedCalls.length === callsPerPage);
       setPaginationKey(
         fetchedCalls.length > 0
           ? fetchedCalls[fetchedCalls.length - 1].call_id
-          : null
+          : null,
       );
     } catch (error) {
       console.error("Error fetching call list:", error);
@@ -87,8 +88,8 @@ const CallList = () => {
     setDisplayedCalls(
       allCalls.slice(
         (currentPage - 1) * callsPerPage,
-        currentPage * callsPerPage
-      )
+        currentPage * callsPerPage,
+      ),
     );
   }, [currentPage, allCalls]);
   useEffect(() => {
@@ -101,7 +102,7 @@ const CallList = () => {
     const start = (nextPage - 1) * callsPerPage;
     if (start >= allCalls.length && hasMoreData && !isFetching)
       fetchCalls(paginationKey, filterType, startDate, endDate).then(() =>
-        setCurrentPage(nextPage)
+        setCurrentPage(nextPage),
       );
     else setCurrentPage(nextPage);
   };
@@ -188,14 +189,28 @@ const CallList = () => {
                   <tr>
                     <th className="px-4 py-3 border-b border-gray-300">#</th>
                     <th className="px-4 py-3 border-b border-gray-300">Time</th>
-                    <th className="px-4 py-3 border-b border-gray-300">Duration</th>
+                    <th className="px-4 py-3 border-b border-gray-300">
+                      Duration
+                    </th>
                     <th className="px-4 py-3 border-b border-gray-300">Cost</th>
-                    <th className="px-4 py-3 border-b border-gray-300">Call Status</th>
-                    <th className="px-4 py-3 border-b border-gray-300">Disconnection Reason</th>
-                    <th className="px-4 py-3 border-b border-gray-300">User Sentiment</th>
-                    <th className="px-4 py-3 border-b border-gray-300">Successful</th>
-                    <th className="px-4 py-3 border-b border-gray-300">From Number</th>
-                    <th className="px-4 py-3 border-b border-gray-300">To Number</th>
+                    <th className="px-4 py-3 border-b border-gray-300">
+                      Call Status
+                    </th>
+                    <th className="px-4 py-3 border-b border-gray-300">
+                      Disconnection Reason
+                    </th>
+                    <th className="px-4 py-3 border-b border-gray-300">
+                      User Sentiment
+                    </th>
+                    <th className="px-4 py-3 border-b border-gray-300">
+                      Successful
+                    </th>
+                    <th className="px-4 py-3 border-b border-gray-300">
+                      From Number
+                    </th>
+                    <th className="px-4 py-3 border-b border-gray-300">
+                      To Number
+                    </th>
                     <th className="px-4 py-3 border-b border-gray-300">Logs</th>
                   </tr>
                 </thead>
@@ -321,7 +336,7 @@ const CallList = () => {
                 [
                   "Duration",
                   formatDuration(
-                    selectedCall.call_cost?.total_duration_seconds
+                    selectedCall.call_cost?.total_duration_seconds,
                   ),
                 ],
                 [
