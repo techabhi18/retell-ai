@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 
 const Header = () => {
@@ -10,6 +9,9 @@ const Header = () => {
             <nav className="space-x-6">
                 <Link to="/" className="text-gray-700 hover:text-blue-600 font-medium">
                     Create Batch Call
+                </Link>
+                <Link to="/feedback-call" className="text-gray-700 hover:text-blue-600 font-medium">
+                    Feedback Call
                 </Link>
                 <Link to="/call-list" className="text-gray-700 hover:text-blue-600 font-medium">
                     Call List
